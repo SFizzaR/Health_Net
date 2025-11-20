@@ -19,7 +19,7 @@ def run_doctor_dashboard(username, user_id):
 
     # --- Header ---
     st.markdown("<h2 style='text-align:center;color:#008080;'>DOCTOR DASHBOARD</h2>", unsafe_allow_html=True)
-    st.write(f"Welcome Dr. **{username}**! Here you can view and manage patients.")
+    st.write(f"Welcome **{username}**! Here you can view and manage patients.")
 
     # --- Connect to DB ---
     conn = sqlite3.connect("hospital.db")

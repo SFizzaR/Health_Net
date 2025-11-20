@@ -155,25 +155,32 @@ def Edit_Patient(user_id, role, patient_id, new_name, new_contact, new_diagnosis
                        f"Doctor updated diagnosis for patient ID={patient_id}")
 
             st.success("Patient updated successfully!")
+    else: 
+        st.warning("Error occured while updating")
 
 def Delete_Patient(user_id, role, patient_id):
     if not permission(role, "delete_patients", user_id):
         st.error("Unauthorized")
         st.stop()
-    c.execute("DELETE FROM patients WHERE patient_id = ?", (patient_id,))
-    conn.commit()
-    st.warning(f"Patient ID {patient_id} deleted!")
-    log.log_action(user_id, "admin", "delete_patient", f"Deleted patient ID={patient_id}")
+    try:
+        c.execute("DELETE FROM patients WHERE patient_id = ?", (patient_id,))
+        conn.commit()
+        st.warning(f"Patient ID {patient_id} deleted!")
+        log.log_action(user_id, "admin", "delete_patient", f"Deleted patient ID={patient_id}")
+    except: 
+        st.warning("Error occured while deleting")
 
 def View_User_logs(user_id, role):
     if not permission(role, "view_logs", user_id):
         st.error("Unauthorized")
         st.stop()
+    try:
+        logs = c.execute("SELECT * FROM logs ORDER BY timestamp DESC").fetchall()
     
-    logs = c.execute("SELECT * FROM logs ORDER BY timestamp DESC").fetchall()
-    
-    log.log_action(user_id, role , "view_logs", f"Viewd all logs")
-    return logs
+        log.log_action(user_id, role , "view_logs", f"Viewd all logs")
+        return logs
+    except:
+        st.warning("Error occured")
 
 
 def ViewUsers(role, user_id):
@@ -181,14 +188,14 @@ def ViewUsers(role, user_id):
         st.error("Unauthorized")
         st.stop()
     elif role == "admin":
-        users = c.execute("SELECT user_id, username, role, password FROM users").fetchall()
+        users = c.execute("SELECT user_id, username, role, password FROM users").fetchall()        
+
+       # Log the action once
+        log.log_action(user_id, role, "manage_users", f"Viewed {len(users)} users")
+
+        return users
     else:
-        users = []
-
-    # Log the action once
-    log.log_action(user_id, role, "manage_users", f"Viewed {len(users)} users")
-
-    return users
+        st.warning("Unable to view users")
 
 def Add_User(user_id, role, username, password, new_role):
     # Check permission
@@ -214,57 +221,3 @@ def Add_User(user_id, role, username, password, new_role):
         log.log_action(user_id, role, "manage_users", f"Added user ID={user_id}")
     else:
         st.warning("Please fill in all fields.")
-
-def Edit_User(editor_id, editor_role, target_user_id, new_username, new_password, new_role, original_user):
-    """
-    editor_id      → the ID of the logged-in user making changes
-    editor_role    → role of logged-in user (admin)
-    target_user_id → the user being edited
-    new_*          → new values submitted from the form
-    original_user  → original row fetched from DB
-    """
-
-    # Permission check
-    if not permission(editor_role, "manage_users", editor_id):
-        st.error("Unauthorized")
-        st.stop()
-
-    # Admin cannot change their own role (security rule)
-    if target_user_id == editor_id and new_role != original_user["role"]:
-        st.error("You cannot change your own role.")
-        st.stop()
-
-    changes = []  # For logging
-
-    # ============================
-    #      FIELD-BY-FIELD EDIT
-    # ============================
-
-    # 1. Username change
-    if new_username != original_user["username"]:
-        c.execute("UPDATE users SET username=? WHERE user_id=?",
-                  (new_username, target_user_id))
-        changes.append(f"username: {original_user['username']} → {new_username}")
-
-    # 2. Role change (admin only)
-    if new_role != original_user["role"]:
-        c.execute("UPDATE users SET role=? WHERE user_id=?",
-                  (new_role, target_user_id))
-        changes.append(f"role: {original_user['role']} → {new_role}")
-
-    # 3. Password change (only if provided)
-    if new_password.strip() != "":
-        hashed_pw = hash_password(new_password)
-        c.execute("UPDATE users SET password=? WHERE user_id=?",
-                  (hashed_pw, target_user_id))
-        changes.append("password: updated")
-
-    # Commit if anything changed
-    if changes:
-        conn.commit()
-        change_text = "; ".join(changes)
-        log.log_action(editor_id, editor_role, "edit_user",
-                       f"Edited user_id={target_user_id}: {change_text}")
-        st.success("User updated successfully!")
-    else:
-        st.info("No changes made.")

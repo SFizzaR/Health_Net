@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import streamlit as st
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -15,7 +16,8 @@ def login_user(username, password):
         role = data[0].lower()  # role
         user_id = data[1] 
         return role, user_id
-    return None
+    else: 
+        st.warning("Login failed")
 
 
 def has_permission(role, permission):

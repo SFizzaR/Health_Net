@@ -111,11 +111,17 @@ def run_admin_dashboard(username, user_id):
 
                 # Optional Delete Button
                 if controller.permission("admin", "delete_patients", user_id):
-                    if st.button("Delete Patient"):
+                    with st.form(key=f"delete_form_{selected_id}"):
+                        st.write("### Delete Patient")
                         confirm = st.checkbox("Are you sure you want to delete this patient?")
-                        if confirm:
-                            controller.Delete_Patient(user_id, "admin", selected_id)
-                            st.rerun()
+                        delete_btn = st.form_submit_button("Delete Patient")
+
+                        if delete_btn:
+                            if confirm:
+                                controller.Delete_Patient(user_id, "admin", selected_id)
+                                st.rerun()
+                            else:
+                                st.warning("Please check the confirmation box before deleting.")
 
             else:
                 st.info("No patients to edit.")
@@ -186,7 +192,7 @@ def run_admin_dashboard(username, user_id):
     
     elif menu == "Manage Users":
         if controller.permission("admin", "manage_users", user_id ):
-            tab1, tab2, tab3 = st.tabs(["View Users", "Add Users", "Edit Users"])
+            tab1, tab2 = st.tabs(["View Users", "Add Users"])
 
             with tab1: 
                 st.subheader("All Users")
@@ -204,7 +210,7 @@ def run_admin_dashboard(username, user_id):
             with tab2:
                 st.subheader("Add New User")
                 if controller.permission("admin", "manage_users" ,user_id):
-                    with st.form("add_patient_form"):
+                    with st.form("add_user_form"):
                         new_username = st.text_input("Username")
                         new_password = st.text_input("Password")
                         new_role = st.text_input("Role")
@@ -213,9 +219,12 @@ def run_admin_dashboard(username, user_id):
 
                     if submit_add:
                        controller.Add_User(user_id, "admin", new_username, new_password, new_role)       
-                    st.rerun()
+                       st.rerun()
     
-
+        c.execute("SELECT MAX(timestamp) FROM logs WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+        last_sync = row[0] if row and row[0] else "No users yet"
+    
 
 
 

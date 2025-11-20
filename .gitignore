@@ -1,0 +1,13 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# SQLite DB (optional: ignore if it's dev data)
+hospital.db
+
+# Virtual environments
+venv/
+backend/venv/
+
+# VS Code files
+.vscode/
